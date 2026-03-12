@@ -1,46 +1,70 @@
 # QML-using-Quantum-Kernel-Matrix
 
 ## Project Overview
-This project demonstrates Quantum Machine Learning (QML) using the Quantum Kernel Matrix approach. The workflow leverages quantum computing (IBM hardware) to compute a kernel matrix, which is then used to train a classical Support Vector Machine (SVM) for classifying breast cancer data as benign or malignant.
 
-### Workflow
-1. **Data Preparation**: The original dataset is preprocessed using Principal Component Analysis (PCA) to reduce dimensionality. The resulting features (PC1, PC2, etc.) and labels (benign/malignant) are saved in `preprocessed data.csv`.
-2. **Quantum Kernel Calculation**: Quantum circuits are used to compute the kernel matrix, which captures quantum similarities between samples. The matrix is saved as `quantum_kernel_matrix.csv`.
-3. **SVM Training**: The SVM is trained using the quantum kernel matrix and the labels from the preprocessed data. The model is evaluated for accuracy and visualized using the first two principal components.
-4. **Evaluation**: The model's accuracy is tested on multiple train-test splits, and the support vectors are visualized.
+This project demonstrates Quantum Machine Learning (QML) using the Quantum Kernel Matrix approach. It leverages IBM quantum hardware to compute a kernel matrix encoding quantum similarities between data samples, which is then used to train a classical Support Vector Machine (SVM) for classifying breast cancer tumours as benign (B) or malignant (M).
 
-## How It Works
-- The quantum kernel matrix is computed using quantum circuits (see `quantum_kernel_matrix.py`).
-- The SVM classifier uses this matrix as a precomputed kernel to learn the separation between benign and malignant cases.
-- The workflow is implemented in both a Python script (`training svm.py`) and a Jupyter notebook (`training_svm.ipynb`).
-- Visualization shows the support vectors and the distribution of classes in the reduced feature space.
+## Workflow
+
+1. **Data Preprocessing** (`processing code.py`)
+   - Loads the raw Wisconsin Breast Cancer dataset (`data.csv`).
+   - Applies standard scaling and PCA for dimensionality reduction.
+   - Saves the reduced features and labels to `preprocessed data.csv`.
+
+2. **Quantum Kernel Computation** (`quantum_kernel_matrix.py`)
+   - Randomly samples 50 data points (`random_state=42`) from the preprocessed data.
+   - Constructs parameterised quantum circuits (ZZFeatureMap) and runs them on IBM quantum hardware via Qiskit Runtime.
+   - Computes the 50×50 kernel matrix and saves it to `quantum_kernel_matrix.csv`.
+
+3. **SVM Training & Evaluation** (`training_svm.ipynb`)
+   - Loads the kernel matrix and the **same** random sample of 50 data points used during kernel computation.
+   - Normalises the kernel matrix to correct for quantum hardware noise: $K'_{ij} = K_{ij} / \sqrt{K_{ii} \cdot K_{jj}}$.
+   - Trains an SVM with the precomputed kernel on an 80/20 stratified train-test split.
+   - Evaluates accuracy on a single split and across 20 random splits with different seeds.
+   - Visualises support vectors and class distribution using PC1 vs PC2.
+   - Saves the trained model to `svm_model.joblib`.
+
+## Project Structure
+
+```
+├── data.csv                     # Raw breast cancer dataset
+├── preprocessed data.csv        # PCA-reduced features + labels
+├── processing code.py           # Data preprocessing script
+├── quantum_kernel_matrix.py     # Quantum kernel computation (IBM hardware)
+├── quantum_kernel_matrix.csv    # Precomputed 50×50 quantum kernel matrix
+├── training_svm.ipynb           # SVM training, evaluation & visualisation notebook
+├── svm_model.joblib             # Saved trained SVM model
+├── svm_support_vectors.png      # Support vector visualisation
+├── requirements.txt             # Python dependencies
+├── Dockerfile                   # Docker image definition
+├── docker-compose.yml           # Docker Compose configuration
+├── LICENSE                      # Project licence
+└── README.md                    # This file
+```
 
 ## How to Run
-1. **Install Dependencies**
-	- Make sure you have Python 3.9+ installed.
-	- Install all required packages:
-	  ```bash
-	  pip install -r requirements.txt
-	  ```
-2. **Prepare Data**
-	- Ensure `preprocessed data.csv` and `quantum_kernel_matrix.csv` are present in the project directory.
-3. **Run the SVM Training Script**
-	- Execute the script to train and evaluate the SVM:
-	  ```bash
-	  python training svm.py
-	  ```
-	- The script will print the test accuracy and save the trained model as `svm_model.joblib`.
-	- Visualization will be saved as `svm_support_vectors.png`.
-4. **Use the Jupyter Notebook**
-	- Open `training_svm.ipynb` in Jupyter or VS Code.
-	- Run each cell to interactively train, evaluate, and visualize the SVM model.
-	- The notebook includes running the model on multiple splits and visualizing results.
 
-## Running with Docker
+### Prerequisites
 
-You can run the project in a containerized environment using Docker:
+- Python 3.9+
+- Install dependencies:
+  ```bash
+  pip install -r requirements.txt
+  ```
 
-1. Build the Docker image:
+### Using the Jupyter Notebook
+
+1. Ensure `preprocessed data.csv` and `quantum_kernel_matrix.csv` are in the project directory.
+2. Open `training_svm.ipynb` in Jupyter or VS Code.
+3. Run all cells top-to-bottom to:
+   - Load and normalise the quantum kernel matrix
+   - Train the SVM on a single split and report accuracy
+   - Visualise support vectors (PC1 vs PC2)
+   - Evaluate accuracy across 20 random train-test splits
+
+### Running with Docker
+
+1. Build the image:
    ```bash
    docker build -t qml-kernel .
    ```
@@ -48,17 +72,35 @@ You can run the project in a containerized environment using Docker:
    ```bash
    docker run -p 8888:8888 -v $(pwd):/app qml-kernel
    ```
-   Or use docker-compose:
+   Or use Docker Compose:
    ```bash
    docker-compose up
    ```
-3. Access Jupyter Notebook:
-   - Open your browser and go to `http://localhost:8888`.
-   - Run `training_svm.ipynb` or any script interactively.
+3. Open `http://localhost:8888` in your browser and run `training_svm.ipynb`.
 
-All dependencies and code will be available inside the container.
+## Key Technical Details
+
+- **Kernel normalisation**: The raw quantum kernel has diagonal values of ~0.73–0.80 due to gate noise and decoherence. Normalisation rescales the matrix so that $K(x_i, x_i) = 1$, improving SVM performance.
+- **Data sampling alignment**: The notebook uses `.sample(n=50, random_state=42)` — matching the sampling in `quantum_kernel_matrix.py` — to ensure labels are correctly paired with kernel entries.
+- **Accuracy resolution**: With 50 samples and an 80/20 split, there are only 10 test samples per split, so accuracy is quantised in 10% increments.
+- **Multi-split evaluation**: 20 random splits (different seeds) are run to assess model stability. The loop uses scoped variable names to avoid overwriting the main train/test split state.
+
+## Dependencies
+
+| Package | Min Version |
+|---------|-------------|
+| pandas | 1.3.0 |
+| numpy | 1.21.0 |
+| scikit-learn | 1.0.0 |
+| matplotlib | 3.4.0 |
+| qiskit | 0.43.0 |
+| qiskit-ibm-runtime | 0.15.0 |
+| seaborn | 0.12.0 |
+| joblib | 1.1.0 |
+| tqdm | 4.62.0 |
 
 ## Notes
-- The project uses a precomputed quantum kernel, so the SVM cannot visualize the true hyperplane in 2D.
-- For custom quantum kernel generation, see `quantum_kernel_matrix.py`.
-- For further analysis or visualization, modify the notebook as needed.
+
+- The quantum kernel is precomputed, so the SVM cannot visualise the true decision boundary in the original feature space.
+- To recompute the kernel on different hardware or with more samples, modify and run `quantum_kernel_matrix.py`.
+- For data preprocessing changes, edit `processing code.py` and regenerate `preprocessed data.csv`.
