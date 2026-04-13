@@ -13,7 +13,7 @@ This project demonstrates Quantum Machine Learning (QML) using the Quantum Kerne
 
 2. **Quantum Kernel Computation** (`quantum_kernel_matrix.py`)
    - Randomly samples 50 data points (`random_state=42`) from the preprocessed data.
-   - Constructs parameterised quantum circuits (ZZFeatureMap) and runs them on IBM quantum hardware via Qiskit Runtime.
+   - Constructs parameterised quantum circuits (ZFeatureMap) and runs them on IBM quantum hardware via Qiskit Runtime.
    - Computes the 50×50 kernel matrix and saves it to `quantum_kernel_matrix.csv`.
 
 3. **SVM Training & Evaluation** (`training_svm.ipynb`)
