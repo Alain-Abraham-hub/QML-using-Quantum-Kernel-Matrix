@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVM Breast Cancer Prediction</title>
+    <style>
+        body {
+            background: #f6f8fa;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 60px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            padding: 32px 28px 24px 28px;
+        }
+        h2 {
+            text-align: center;
+            color: #2d3a4b;
+            margin-bottom: 28px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        label {
+            color: #444;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            font-size: 1rem;
+        }
+        input[type="number"] {
+            padding: 8px 10px;
+            border: 1px solid #cfd8dc;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-top: 4px;
+            transition: border 0.2s;
+        }
+        input[type="number"]:focus {
+            border: 1.5px solid #1976d2;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(90deg, #1976d2 60%, #42a5f5 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #1565c0 60%, #1976d2 100%);
+        }
+        .result {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .malignant {
+            color: #d32f2f;
+        }
+        .benign {
+            color: #388e3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Breast Cancer Prediction</h2>
+        <p style="text-align:center; color:#555; margin-bottom:18px;">
+            Enter the first five principal component (PCA) values from your data to predict whether a breast cancer sample is <b>Malignant</b> or <b>Benign</b>.<br>
+            This app uses a quantum-enhanced SVM model trained on PCA-reduced features.
+        </p>
+        <div style="text-align:center; margin-bottom:18px;">
+            <img src="/static/predictor/pca_variance.png" alt="PCA Variance Plot" style="max-width:100%; border-radius:8px; box-shadow:0 2px 8px #eee; margin-bottom:8px;">
+            <div style="font-size:0.95em; color:#888;">Variance explained by each PCA component</div>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <label>PC1
+                <input type="number" step="any" name="pc1" required placeholder="e.g. 2.5" title="Principal Component 1: Most important feature after PCA">
+                <span style="font-size:0.9em; color:#888;">Most variance</span>
+            </label>
+            <label>PC2
+                <input type="number" step="any" name="pc2" required placeholder="e.g. -1.3" title="Principal Component 2: Second most important feature after PCA">
+                <span style="font-size:0.9em; color:#888;">Second most variance</span>
+            </label>
+            <label>PC3
+                <input type="number" step="any" name="pc3" required placeholder="e.g. 0.7" title="Principal Component 3: Third most important feature after PCA">
+                <span style="font-size:0.9em; color:#888;">Third most variance</span>
+            </label>
+            <label>PC4
+                <input type="number" step="any" name="pc4" required placeholder="e.g. 1.1" title="Principal Component 4: Fourth most important feature after PCA">
+                <span style="font-size:0.9em; color:#888;">Fourth most variance</span>
+            </label>
+            <label>PC5
+                <input type="number" step="any" name="pc5" required placeholder="e.g. -0.5" title="Principal Component 5: Fifth most important feature after PCA">
+                <span style="font-size:0.9em; color:#888;">Fifth most variance</span>
+            </label>
+            <button type="submit">Predict</button>
+        </form>
+        <div style="margin-top:18px; background:#f3f7fa; border-radius:8px; padding:12px 16px; font-size:0.98em; color:#555;">
+            <b>Sample Input:</b><br>
+            PC1: 2.39, PC2: -3.77, PC3: -0.53, PC4: -1.12, PC5: -0.62
+        </div>
+        <div style="margin-top:18px; background:#f9fbe7; border-radius:8px; padding:10px 14px; font-size:0.97em; color:#666;">
+            <b>Prediction Meaning:</b><br>
+            <span class="malignant">Malignant</span>: Cancerous tumor (requires medical attention)<br>
+            <span class="benign">Benign</span>: Non-cancerous tumor
+        </div>
+        {% if prediction %}
+            <div class="result">
+                Prediction:
+                {% if prediction == 'Malignant' %}
+                    <span class="malignant">{{ prediction }}</span>
+                {% elif prediction == 'Benign' %}
+                    <span class="benign">{{ prediction }}</span>
+                {% else %}
+                    <span>{{ prediction }}</span>
+                {% endif %}
+            </div>
+            <div style="margin-top:10px; text-align:center; color:#888; font-size:0.97em;">
+                <b>Input Used:</b>
+                PC1: {{ request.POST.pc1 }}, PC2: {{ request.POST.pc2 }}, PC3: {{ request.POST.pc3 }}, PC4: {{ request.POST.pc4 }}, PC5: {{ request.POST.pc5 }}
+            </div>
+        {% endif %}
+        <footer style="margin-top:32px; text-align:center; color:#aaa; font-size:0.95em;">
+            &copy; 2026 Quantum SVM Breast Cancer Predictor &mdash; <a href="https://github.com/" style="color:#1976d2; text-decoration:none;">GitHub</a>
+        </footer>
+    </div>
+</body>
+</html>
